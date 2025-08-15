@@ -16,7 +16,7 @@ contract MinimalAccount is IAccount, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     error MinimalAccount__InvalidEntryPoint();
-    error MinimalAccount__InvalidEntryPointOrOwner();   
+    error MinimalAccount__InvalidEntryPointOrOwner();
     error MinimalAccount__CallFailed(bytes);
     error MinimalAccount__ZeroAddress();
 
@@ -55,16 +55,16 @@ contract MinimalAccount is IAccount, Ownable {
 
     receive() external payable {}
 
-    function execute(address dst, uint256 value, bytes calldata functionData) external requireFromOwnerOrEntryPoint{
+    function execute(address dst, uint256 value, bytes calldata functionData) external requireFromOwnerOrEntryPoint {
         (bool success, bytes memory returnData) = dst.call{value: value}(functionData);
-        if(!success){
+        if (!success) {
             revert MinimalAccount__CallFailed(returnData);
         }
     }
-    
 
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
         external
+        
         requireFromEntryPoint
         returns (uint256 validationData)
     {
@@ -75,7 +75,7 @@ contract MinimalAccount is IAccount, Ownable {
         }
 
         // _validateNonce(userOp.nonce);
-        // _payPrefund(missingAccountFunds);
+        _payPrefund(missingAccountFunds);
 
         return validationData;
     }
@@ -94,6 +94,13 @@ contract MinimalAccount is IAccount, Ownable {
 
         // If the signature is valid, return success
         return SIG_VALIDATION_SUCCESS;
+    }
+
+    function _payPrefund(uint256 missingAccountFunds) internal {
+        if (missingAccountFunds != 0) {
+            (bool success,) = payable(msg.sender).call{value: missingAccountFunds, gas: type(uint256).max}("");
+            (success);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

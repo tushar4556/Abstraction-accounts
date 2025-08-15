@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.28;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {EntryPoint} from "lib/account-abstraction/contracts/core/EntryPoint.sol";
 
 contract HelperConfig is Script {
     error HelperConfig__InvalidChainId();
@@ -16,7 +17,8 @@ contract HelperConfig is Script {
     uint256 constant _ZKSYNC_SEPOLIA_CHAIN_ID = 300;
     uint256 constant _LOCAL_CHAIN_ID = 31337;
     address constant _BURNER_WALLET = 0x5EF1EEb98Ff418a205832656c254c509d8374495;
-    address constant _FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38; 
+    // address constant _FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+    address constant _FOUNDRY_DEFAULT_WALLET = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     NetworkConfig public localNetworkConfig;
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
@@ -36,7 +38,7 @@ contract HelperConfig is Script {
         } else if (chaidId == _ZKSYNC_SEPOLIA_CHAIN_ID) {
             return getZkSyncSepoliaConfig();
         } else {
-            return getOrCreateAnvilEthConfig(address(0));
+            return getOrCreateAnvilEthConfig();
         }
     }
 
@@ -48,15 +50,19 @@ contract HelperConfig is Script {
         return NetworkConfig({entryPoint: address(0), account: _BURNER_WALLET});
     }
 
-    function getOrCreateAnvilEthConfig(address deployerKey) public  returns (NetworkConfig memory) {
+    function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
         if (localNetworkConfig.entryPoint != address(0)) {
             return localNetworkConfig;
         }
 
-        // If account not set or deployerKey not provided effectively, return config with the default foundry wallet
-        // Or use deployerKey if it's valid.
-        address accountToUse = deployerKey == address(0) ? _FOUNDRY_DEFAULT_WALLET : deployerKey;
-        localNetworkConfig = NetworkConfig({entryPoint: address(0), account: accountToUse});
-        return localNetworkConfig;
+        //deploy mocks..
+        console2.log("Deploying mocks");
+        vm.startBroadcast(_FOUNDRY_DEFAULT_WALLET);
+        EntryPoint entryPoint = new EntryPoint();
+        vm.stopBroadcast();
+
+        localNetworkConfig = NetworkConfig({entryPoint: address(entryPoint), account: _FOUNDRY_DEFAULT_WALLET});
+
+        return (localNetworkConfig);
     }
 }
